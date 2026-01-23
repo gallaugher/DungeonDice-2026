@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var message = "Roll a die!"
+    private let diceTypes = [4, 6, 8, 10, 12, 20, 100]
     var body: some View {
         VStack {
             Text("Dungeon Dice!")
@@ -24,35 +25,11 @@ struct ContentView: View {
             
             Spacer()
             
-            VStack {
-                HStack {
-                    Button("4-sided") {
-                        rollDie(sides: 4)
+            Group {
+                ForEach(diceTypes, id: \.self) { diceType in
+                    Button("\(diceType)-sided") {
+                        rollDie(sides: diceType)
                     }
-                    Spacer()
-                    Button("6-sided") {
-                        rollDie(sides: 6)
-                    }
-                    Spacer()
-                    Button("8-sided") {
-                        rollDie(sides: 8)
-                    }
-                }
-                HStack {
-                    Button("10-sided") {
-                        rollDie(sides: 10)
-                    }
-                    Spacer()
-                    Button("12-sided") {
-                        rollDie(sides: 12)
-                    }
-                    Spacer()
-                    Button("20-sided") {
-                        rollDie(sides: 20)
-                    }
-                }
-                Button("100-sided") {
-                    rollDie(sides: 100)
                 }
             }
             .buttonStyle(.glassProminent)
