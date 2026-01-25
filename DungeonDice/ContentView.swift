@@ -5,7 +5,7 @@
 //  YouTube.com/profgallaugher - gallaugher.bsky.social
 
 
-import SwiftUI // Updated
+import SwiftUI
 
 struct ContentView: View {
     @State private var message = "Roll a die!"
