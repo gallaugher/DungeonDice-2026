@@ -25,16 +25,18 @@ struct ContentView: View {
             
             Spacer()
             
-            Group {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 110))]) {
                 ForEach(diceTypes, id: \.self) { diceType in
                     Button("\(diceType)-sided") {
                         rollDie(sides: diceType)
                     }
+                    .font(.title2)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .buttonStyle(.glassProminent)
+                    .tint(.red)
                 }
             }
-            .buttonStyle(.glassProminent)
-            .font(.title2)
-            .tint(.red)
         }
         .padding()
     }
