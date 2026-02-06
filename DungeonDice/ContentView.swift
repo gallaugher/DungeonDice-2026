@@ -8,8 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
+    struct DieGroup: Identifiable {
+        var id: Int
+        let diceLabel: String
+        var rollValues: [Int] = []
+        var rollString: String {
+            rollValues.map { "\($0)" }.joined(separator: ", ") // Creates comma-separated String from rollValues elements
+        }
+        var subTotal: Int {rollValues.reduce(0, +)} // Adds up al of the values in rollValues
+    }
+    
     enum Dice: Int, CaseIterable, Identifiable {
-        case four = 4, six = 6, eight = 8, ten = 10, twelve = 12, twenty = 20, hundred = 100
+        case d4 = 4, d6 = 6, d8 = 8, d10 = 10, d12 = 12, d20 = 20, d100 = 100
         
         var id: Int { self.rawValue }
         
@@ -17,26 +27,49 @@ struct ContentView: View {
     }
     
     @State private var message = "Roll a die!"
+    @State private var animationTrigger = false // changed when animation should occur
+    @State private var isDoneAnimating = true
+    @State private var dieGroups: [DieGroup] = []
+    private var grandTotal: Int { dieGroups.reduce(0, {$0 + $1.subTotal} ) }
     
     var body: some View {
-        return VStack {
+        VStack {
             Text("Dungeon Dice!")
                 .font(.largeTitle)
                 .fontWeight(.black)
                 .foregroundStyle(.red)
             
+            GroupBox {
+                ViewThatFits(in: .vertical) {
+                    rollList // fits on screen, no screolling
+                    
+                    ScrollView {
+                        rollList // doesn't fit on scren, use ScrollView
+                    }
+                }
+            } label: {
+                Text("Session Rolls:")
+                    .font(.title2)
+                    .bold()
+            }
+            
             Spacer()
             
             Text(message)
-                .font(.largeTitle)
+                .font(.title)
                 .multilineTextAlignment(.center)
-            
-            Spacer()
+                .rotation3DEffect(isDoneAnimating ? .degrees(360) : .degrees(0), axis: (1, 0, 0))
+                .onChange(of: animationTrigger) {
+                    isDoneAnimating = false // set to the beginning "false' state right away
+                    withAnimation(.interpolatingSpring(duration: 0.6, bounce: 0.4)) {
+                        isDoneAnimating = true
+                    }
+                }
             
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 110))]) {
                 ForEach(Dice.allCases) { die in
                     Button("\(die.rawValue)-sided") {
-                        message = "You rolled a \(die.roll) on a \(die)-sided die."
+                        performRoll(die: die)
                     }
                     .font(.title2)
                     .lineLimit(1)
@@ -49,6 +82,82 @@ struct ContentView: View {
         .padding()
     }
     
+    func performRoll(die: Dice) {
+        animationTrigger.toggle()
+        let roll = die.roll
+        message = "You rolled a \(roll) on a \(die)"
+        
+        withAnimation(.snappy) {
+            // Check if the DieGroup for the die rolled is in the dieGroups list:
+            if let index = dieGroups.firstIndex(where: { $0.id == die.rawValue }) {
+                dieGroups[index].rollValues.append(roll) // if DieGroup for this die is in the list, just add the roll to it's rollValues array
+            } else { // otherwise
+                dieGroups.append(DieGroup(id: die.rawValue, diceLabel: "\(die)", rollValues: [roll])) // Create the DieGroup for that button, which hasn't been previously pressed
+            }
+            dieGroups.sort { $0.id < $1.id }
+        }
+    }
+    
+    @ViewBuilder
+    private var rollList: some View {
+        LazyVStack (alignment: .leading) {
+            if dieGroups.isEmpty {
+                Text("No rolls yet - tap a die below.")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .font(.title3)
+            } else {
+                ForEach(dieGroups) { dieGroup in
+                    HStack {
+                        Text("\(dieGroup.rollValues.count)×")
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(.red.opacity(0.2), in: Capsule())
+                            .overlay {
+                                Capsule().stroke(.red.opacity(0.16), lineWidth: 1)
+                            }
+                        
+                        Text("\(dieGroup.diceLabel)")
+                            .fontWeight(.semibold)
+                            .padding(.trailing, 6)
+                        
+                        Text("\(dieGroup.rollString)")
+                            .foregroundStyle(.secondary)
+                            .italic()
+                        
+                        Spacer()
+                        
+                        Text("\(dieGroup.subTotal)")
+                    }
+                    .font(.title3)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    
+                    Divider()
+                }
+                HStack {
+                    Text("TOTAL: \(grandTotal)")
+                        .font(.title2)
+                        .bold()
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    
+                    Spacer()
+                    
+                    Button("Clear") {
+                        withAnimation(.snappy) {
+                            dieGroups.removeAll()
+                        }
+                    }
+                    .buttonStyle(.glass)
+                    .tint(.red)
+                    .disabled(dieGroups.isEmpty)
+                }
+            }
+        }
+    }
 }
 
 #Preview {
